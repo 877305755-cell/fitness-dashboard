@@ -1,0 +1,35 @@
+{
+  "title": "大学生健身台",
+  "properties": [
+    { "name": "名称", "config": { "text": "" } },
+    { "name": "分类", "config": { "select": { "options": [
+      { "text": "课程", "id": "a1b2c3d4e5f6a7b8" },
+      { "text": "训练", "id": "b2c3d4e5f6a7b8c9" },
+      { "text": "待办", "id": "c3d4e5f6a7b8c9d0" },
+      { "text": "身体数据", "id": "d4e5f6a7b8c9d0e1" }
+    ] } } },
+    { "name": "状态", "config": { "select": { "options": [
+      { "text": "未完成", "id": "e5f6a7b8c9d0e1f2" },
+      { "text": "已完成", "id": "f6a7b8c9d0e1f2a3" }
+    ] } } },
+    { "name": "星期", "config": { "select": { "options": [
+      { "text": "周一", "id": "a7b8c9d0e1f2a3b4" },
+      { "text": "周二", "id": "b8c9d0e1f2a3b4c5" },
+      { "text": "周三", "id": "c9d0e1f2a3b4c5d6" },
+      { "text": "周四", "id": "d0e1f2a3b4c5d6e7" },
+      { "text": "周五", "id": "e1f2a3b4c5d6e7f8" },
+      { "text": "周六", "id": "f2a3b4c5d6e7f8a9" },
+      { "text": "周日", "id": "a3b4c5d6e7f8a9b0" }
+    ] } } },
+    { "name": "开始时间", "config": { "text": "" } },
+    { "name": "结束时间", "config": { "text": "" } },
+    { "name": "地点", "config": { "text": "" } },
+    { "name": "详情", "config": { "text": "" } },
+    { "name": "睡眠时长", "config": { "number": { "decimalPlaces": 1, "useSeparate": false } } },
+    { "name": "体重", "config": { "number": { "decimalPlaces": 1, "useSeparate": false } } },
+    { "name": "腰围", "config": { "number": { "decimalPlaces": 1, "useSeparate": false } } },
+    { "name": "链接", "config": { "url": { "text": "", "link": "" } } },
+    { "name": "日期", "config": { "date": "1970-01-01T00:00:00Z" } },
+    { "name": "备注", "config": { "text": "" } }
+  ]
+}

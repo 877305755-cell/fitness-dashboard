@@ -1,0 +1,80 @@
+{
+  "title": "大学生健身台",
+  "page_type": "mixed",
+  "properties": {
+    "名称": { "text": "" },
+    "分类": { "select": { "options": [
+      { "text": "课程", "id": "a1b2c3d4e5f6a7b8" },
+      { "text": "训练", "id": "b2c3d4e5f6a7b8c9" },
+      { "text": "待办", "id": "c3d4e5f6a7b8c9d0" },
+      { "text": "身体数据", "id": "d4e5f6a7b8c9d0e1" }
+    ] } },
+    "状态": { "select": { "options": [
+      { "text": "未完成", "id": "e5f6a7b8c9d0e1f2" },
+      { "text": "已完成", "id": "f6a7b8c9d0e1f2a3" }
+    ] } },
+    "星期": { "select": { "options": [
+      { "text": "周一", "id": "a7b8c9d0e1f2a3b4" },
+      { "text": "周二", "id": "b8c9d0e1f2a3b4c5" },
+      { "text": "周三", "id": "c9d0e1f2a3b4c5d6" },
+      { "text": "周四", "id": "d0e1f2a3b4c5d6e7" },
+      { "text": "周五", "id": "e1f2a3b4c5d6e7f8" },
+      { "text": "周六", "id": "f2a3b4c5d6e7f8a9" },
+      { "text": "周日", "id": "a3b4c5d6e7f8a9b0" }
+    ] } },
+    "开始时间": { "text": "" },
+    "结束时间": { "text": "" },
+    "地点": { "text": "" },
+    "详情": { "text": "" },
+    "序号": { "number": { "decimalPlaces": 0, "useSeparate": false } },
+    "睡眠时长": { "number": { "decimalPlaces": 1, "useSeparate": false } },
+    "体重": { "number": { "decimalPlaces": 1, "useSeparate": false } },
+    "腰围": { "number": { "decimalPlaces": 1, "useSeparate": false } },
+    "链接": { "url": { "text": "", "link": "" } },
+    "日期": { "date": "1970-01-01T00:00:00Z" },
+    "备注": { "text": "" }
+  },
+  "field_mapping": {
+    "名称": { "value_type": "text", "form_input": "[name=\"title\"]", "display_selector": null, "render_signal": "form input[name=title]" },
+    "分类": { "value_type": "select", "form_input": null, "display_selector": null, "render_signal": "script:fixed-by-tab", "options_value_key": "value" },
+    "状态": { "value_type": "select", "form_input": null, "display_selector": null, "render_signal": "script:toggle-handler", "options_value_key": "value" },
+    "星期": { "value_type": "select", "form_input": "#weekdaySelect", "display_selector": null, "render_signal": "select#weekdaySelect", "options_value_key": "value" },
+    "开始时间": { "value_type": "text", "form_input": "[name=\"startTime\"]", "display_selector": null, "render_signal": "form input[name=startTime]" },
+    "结束时间": { "value_type": "text", "form_input": "[name=\"endTime\"]", "display_selector": null, "render_signal": "form input[name=endTime]" },
+    "地点": { "value_type": "text", "form_input": "[name=\"location\"]", "display_selector": null, "render_signal": "form input[name=location]" },
+    "详情": { "value_type": "text", "form_input": null, "display_selector": null, "render_signal": "slot textarea[data-slot-f=ex]" },
+    "序号": { "value_type": "number", "form_input": null, "display_selector": null, "render_signal": "script:slot-order" },
+    "睡眠时长": { "value_type": "number", "form_input": "[name=\"sleep\"]", "display_selector": "[data-field=\"stat-sleep\"]", "render_signal": "span[data-field=stat-sleep]" },
+    "体重": { "value_type": "number", "form_input": "[name=\"weight\"]", "display_selector": "[data-field=\"stat-weight\"]", "render_signal": "span[data-field=stat-weight]" },
+    "腰围": { "value_type": "number", "form_input": "[name=\"waist\"]", "display_selector": "[data-field=\"stat-waist\"]", "render_signal": "span[data-field=stat-waist]" },
+    "链接": { "value_type": "url", "form_input": null, "display_selector": null, "render_signal": "script:link-removed" },
+    "日期": { "value_type": "date", "form_input": "[name=\"date\"]", "display_selector": null, "render_signal": "form input[name=date]" },
+    "备注": { "value_type": "text", "form_input": "[name=\"note\"]", "display_selector": null, "render_signal": "form textarea[name=note]" }
+  },
+  "options_map": {
+    "分类": {
+      "course": { "text": "课程", "id": "a1b2c3d4e5f6a7b8" },
+      "train": { "text": "训练", "id": "b2c3d4e5f6a7b8c9" },
+      "todo": { "text": "待办", "id": "c3d4e5f6a7b8c9d0" },
+      "body": { "text": "身体数据", "id": "d4e5f6a7b8c9d0e1" }
+    },
+    "状态": {
+      "undone": { "text": "未完成", "id": "e5f6a7b8c9d0e1f2" },
+      "done": { "text": "已完成", "id": "f6a7b8c9d0e1f2a3" }
+    },
+    "星期": {
+      "mon": { "text": "周一", "id": "a7b8c9d0e1f2a3b4" },
+      "tue": { "text": "周二", "id": "b8c9d0e1f2a3b4c5" },
+      "wed": { "text": "周三", "id": "c9d0e1f2a3b4c5d6" },
+      "thu": { "text": "周四", "id": "d0e1f2a3b4c5d6e7" },
+      "fri": { "text": "周五", "id": "e1f2a3b4c5d6e7f8" },
+      "sat": { "text": "周六", "id": "f2a3b4c5d6e7f8a9" },
+      "sun": { "text": "周日", "id": "a3b4c5d6e7f8a9b0" }
+    }
+  },
+  "source": "agent_analysis",
+  "sdk_calls_found": true,
+  "existing_databases": ["EZSIrcmQTagP66CVXS0ae2"],
+  "confidence": "high",
+  "needs_database": { "level": "strong", "reason": "workbench with forms and lists" }
+}
