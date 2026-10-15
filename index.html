@@ -86,6 +86,8 @@
   .cell .part{display:block;font-size:13px;color:#e07a7e;background:var(--red-soft);border-radius:6px;padding:2px 5px;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;text-align:center;line-height:1.35}
   .cell .part.donep{color:#7ecfa4;background:rgba(63,157,107,.12);text-decoration:line-through}
   .cell .restb{display:block;font-size:12.5px;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:2px 5px;margin-top:auto;text-align:center;line-height:1.35}
+  .cell.holi{background:rgba(63,157,107,.07)}
+  .cell .holib{display:block;font-size:11px;color:var(--green);margin-top:auto;text-align:center;line-height:1.35}
   .cell .cdot{position:absolute;right:6px;top:7px;font-size:11px;color:#7a8aa8}
   .cell .clist{display:flex;flex-direction:column;gap:2px;margin-top:1px}
   .cell .citem{display:flex;align-items:center;gap:3px;font-size:10.5px;line-height:1.3;white-space:nowrap;overflow:hidden}
@@ -539,18 +541,32 @@ function todaysCourses(courses, dayName, dateStr){
   out.sort(function(a,b){ return hmToMin(val(a,'开始时间'))-hmToMin(val(b,'开始时间')); });
   return out;
 }
-/* ISO 周号：奇数=单周，偶数=双周 */
-function weekParity(dateStr){
+/* 教学周：含 9月1日 的那一周为第 1 周（周一为周起始） */
+var SEM_START = '2026-08-31'; /* 2026-09-01 所在周一 */
+function academicWeek(dateStr){
   var p=dateStr.split('-');
-  var d=new Date(Date.UTC(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10)));
-  if(isNaN(d.getTime())) return 0;
-  var dow=(d.getUTCDay()+6)%7; /* 周一=0 */
-  d.setUTCDate(d.getUTCDate()-dow+3); /* 本周周四（ISO 周锚点） */
-  var firstThu=new Date(Date.UTC(d.getUTCFullYear(),0,4));
-  var fdow=(firstThu.getUTCDay()+6)%7;
-  firstThu.setUTCDate(firstThu.getUTCDate()-fdow+3);
-  var week=1+Math.round((d.getTime()-firstThu.getTime())/(7*86400000));
-  return (week%2===1)?1:2;
+  var d=new Date(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10));
+  var s=SEM_START.split('-');
+  var sd=new Date(parseInt(s[0],10),parseInt(s[1],10)-1,parseInt(s[2],10));
+  var days=Math.round((d.getTime()-sd.getTime())/86400000);
+  return Math.floor(days/7)+1;
+}
+/* 法定节假日（2026-2027-1 学期）：周末与放假区间都算「放假」 */
+var HOLIDAYS = [
+  ['2026-09-25','2026-09-27'], /* 中秋 */
+  ['2026-10-01','2026-10-07'], /* 国庆 */
+  ['2026-12-31','2027-01-03']  /* 元旦 */
+];
+function isHoliday(ds){
+  var p=ds.split('-'); var d=new Date(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10));
+  var dow=d.getDay(); if(dow===0||dow===6) return '周末';
+  for(var i=0;i<HOLIDAYS.length;i++){ if(ds>=HOLIDAYS[i][0] && ds<=HOLIDAYS[i][1]) return '法定节假日'; }
+  return false;
+}
+function weekParity(dateStr){
+  var w=academicWeek(dateStr);
+  if(w<=0) return 0;
+  return (w%2===1)?1:2;
 }
 function dueItems(c){ /* 待办：未完成且日期<=今天 */
   var today=todayStr(), out=[];
@@ -735,8 +751,12 @@ function renderFreeSlots(c){
 
 function renderTodayCourses(c){
   var box=document.getElementById('todayCourses');
-  var list=todaysCourses(c.courses, weekdayNameOfToday(), todayStr());
-  if(!list.length){ box.innerHTML='<div class="empty">今天没有课，自由安排</div>'; return; }
+  var ds=todayStr();
+  var list=todaysCourses(c.courses, weekdayNameOfToday(), ds);
+  if(!list.length){
+    var hd=isHoliday(ds);
+    box.innerHTML='<div class="empty">'+(hd?esc(hd)+' · 放假休息':'今天没有课，自由安排')+'</div>'; return;
+  }
   var now=hmToMin(nowHM()), html='';
   for(var i=0;i<list.length;i++){
     var r=list[i];
@@ -771,8 +791,10 @@ function renderCalendar(c){
     var dayNum=i-lead+1;
     if(dayNum<1||dayNum>dim){ html+='<div class="cell out"></div>'; continue; }
     var ds=dstr(state.calY,state.calM,dayNum);
+    var courses=todaysCourses(c.courses, weekdayNameOf(ds), ds);
+    var hd=isHoliday(ds);
     var rot=rotationFor(ds,c);
-    var cls='cell'+(ds===today?' today':'')+(ds===state.selDate?' sel':'');
+    var cls='cell'+(ds===today?' today':'')+(ds===state.selDate?' sel':'')+((hd&&!courses.length)?' holi':'');
     var inner='<span class="dnum">'+dayNum+'</span>';
     var dn=doneOn(ds,c);
     if(rot.type==='train'){
@@ -781,7 +803,6 @@ function renderCalendar(c){
     }else if(rot.type==='rest'){
       inner+='<span class="restb">休</span>';
     }
-    var courses=todaysCourses(c.courses, weekdayNameOf(ds), ds);
     if(courses.length){
       inner+='<div class="clist">';
       for(var ci=0;ci<courses.length && ci<2;ci++){
@@ -795,6 +816,8 @@ function renderCalendar(c){
       }
       if(courses.length>2) inner+='<div class="cmore">+'+(courses.length-2)+' 门</div>';
       inner+='</div>';
+    }else if(hd){
+      inner+='<span class="holib">'+esc(hd==='周末'?'周末休':'放假')+'</span>';
     }
     html+='<div class="'+cls+'" data-date="'+ds+'">'+inner+'</div>';
   }
@@ -808,6 +831,7 @@ function renderDayDetail(c){
   var html='<div class="muted" style="margin-bottom:10px;font-size:14px;color:var(--txt)">'+esc(fmtCN(ds))+' · '+esc(weekdayNameOf(ds))+'</div>';
 
   var courses=todaysCourses(c.courses, weekdayNameOf(ds), ds);
+  var hd=isHoliday(ds);
   if(courses.length){
     html+='<div class="muted" style="margin:4px 0 6px">课程</div>';
     for(var i=0;i<courses.length;i++){
@@ -815,11 +839,11 @@ function renderDayDetail(c){
       var wp2=selText(val(r,'单双周'),'单双周');
       html+='<div class="item"><div class="info">'
         +'<div class="t">'+esc(val(r,'开始时间'))+'–'+esc(val(r,'结束时间'))+' · '+esc(val(r,'名称'))+'</div>'
-        +'<div class="d">'+esc(val(r,'地点')||'地点待定')+(wp2&&wp2!=='每周'?'<span class="tag">'+esc(wp2)+'</span>':'')+'</div></div>'
+        +'<div class="d">'+esc(val(r,'地点')||'地点待定')+(wp2&&wp2!=='每周'?'<span class="tag">'+esc(wp2)+'</span>':'')+(hd?'<span class="tag" style="border-color:var(--green);color:var(--green)">'+esc(hd)+'</span>':'')+'</div></div>'
         +'<button class="del" data-del-course="'+esc(r._id||'')+'"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>';
     }
   }else{
-    html+='<div class="empty" style="margin-bottom:12px">这天没课</div>';
+    html+='<div class="empty" style="margin-bottom:12px">'+(hd?esc(hd)+' · 放假休息':'这天没课')+'</div>';
   }
 
   html+='<div class="muted" style="margin:10px 0 6px">训练</div>';
@@ -1491,9 +1515,18 @@ init();
 
   function importIcs(text){
     if(!text||text.indexOf('BEGIN:VCALENDAR')<0){ showToast('不是有效的 .ics 文件'); return; }
+    /* 替换式导入：先清空当前全部课程（保留手动添加的「休息日」标记） */
+    var oldIds=[];
+    for(var z=0;z<state.records.length;z++){
+      var zr=state.records[z];
+      if(val(zr,'名称')===REST_NAME) continue;
+      if(selMatch(val(zr,'分类'),'分类',OPT['分类'].course)) oldIds.push(zr._id);
+    }
+    if(oldIds.length && !window.confirm('将清空当前「'+oldIds.length+'」门已有课程，再导入新課表。确定吗？')) return;
     var blocks=text.split('BEGIN:VEVENT');
     var added=0, skipped=0, oneoff=0;
     var chain=Promise.resolve();
+    oldIds.forEach(function(id){ chain=chain.then(function(){ return api.remove(id); }); });
     blocks.forEach(function(block){
       if(block.indexOf('END:VEVENT')<0) return;
       var body=block.split('END:VEVENT')[0];
@@ -1532,8 +1565,8 @@ init();
         '结束时间':{ text: et },
         '地点':{ text: loc }
       };
-      var note2=(teacher?('教师：'+teacher+' '):'')+(rrule?'':('仅 '+start.getFullYear()+'-'+pad2(start.getMonth()+1)+'-'+pad2(start.getDate())+' 一次'));
-      if(note2) props['备注']={ text: note2.trim() };
+      var note2='__IMPORTED__ '+(teacher?('教师：'+teacher+' '):'')+(rrule?'':('仅 '+start.getFullYear()+'-'+pad2(start.getMonth()+1)+'-'+pad2(start.getDate())+' 一次'));
+      props['备注']={ text: note2.trim() };
       if(!rrule) oneoff++;
       (function(p){ chain=chain.then(function(){ return api.addRecord(p).then(function(){ added++; }); }); })(props);
     });
