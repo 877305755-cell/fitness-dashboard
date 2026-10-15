@@ -529,6 +529,7 @@ function rotationFor(dateStr,c){
 }
 function todaysCourses(courses, dayName, dateStr){
   var par = dateStr ? weekParity(dateStr) : 0; /* 1=单周 2=双周 0=未知 */
+  var aw = dateStr ? academicWeek(dateStr) : 0;
   var out=[];
   for(var i=0;i<courses.length;i++){
     var r=courses[i];
@@ -536,6 +537,8 @@ function todaysCourses(courses, dayName, dateStr){
     var wp=selText(val(r,'单双周'),'单双周')||'每周';
     if(wp==='单周' && par!==1) continue;
     if(wp==='双周' && par!==2) continue;
+    var wm=String(val(r,'备注')||'').match(/仅第(\d+)周/);
+    if(wm && aw && aw!==parseInt(wm[1],10)) continue;
     out.push(r);
   }
   out.sort(function(a,b){ return hmToMin(val(a,'开始时间'))-hmToMin(val(b,'开始时间')); });
@@ -1545,11 +1548,7 @@ init();
       var st=pad2(start.getHours())+':'+pad2(start.getMinutes());
       var et=pad2(end.getHours())+':'+pad2(end.getMinutes());
       var teacher=''; var tm=desc.match(/任课教师[:：]\s*([^\n]+)/); if(tm) teacher=tm[1].trim();
-      var isMakeup=sum.indexOf('补课')>-1||desc.indexOf('补课')>-1;
-      var note='';
-      if(isMakeup){ if(sum.indexOf('补课')<0) note='（补课）'; }
-      else if(!rrule) note='（集中实训·仅第16周）';
-      var name=sum+(note?' '+note:'');
+      var name=sum; /* 名字保持干净，不加任何括号说明 */
       var dup=false;
       for(var i=0;i<state.records.length;i++){
         var r=state.records[i];
@@ -1565,14 +1564,16 @@ init();
         '结束时间':{ text: et },
         '地点':{ text: loc }
       };
-      var note2='__IMPORTED__ '+(teacher?('教师：'+teacher+' '):'')+(rrule?'':('仅 '+start.getFullYear()+'-'+pad2(start.getMonth()+1)+'-'+pad2(start.getDate())+' 一次'));
+      /* 一次性课表：备注写入「仅第 N 周」，由 todaysCourses 过滤，平时不显示 */
+      var wk = !rrule ? academicWeek(start.getFullYear()+'-'+pad2(start.getMonth()+1)+'-'+pad2(start.getDate())) : 0;
+      var note2='__IMPORTED__ '+(teacher?('教师：'+teacher+' '):'')+(wk?('仅第'+wk+'周'):'');
       props['备注']={ text: note2.trim() };
       if(!rrule) oneoff++;
       (function(p){ chain=chain.then(function(){ return api.addRecord(p).then(function(){ added++; }); }); })(props);
     });
     chain.then(function(){
       var msg='已导入 '+added+' 门课';
-      if(oneoff) msg+='（含 '+oneoff+' 门集中/补课，具体日期见备注）';
+      if(oneoff) msg+='（含 '+oneoff+' 门集中/补课，仅对应教学周显示）';
       if(skipped) msg+='，跳过 '+skipped+' 门重复';
       showToast(msg);
       reload();
