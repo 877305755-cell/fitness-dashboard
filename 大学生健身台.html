@@ -212,6 +212,11 @@
     </div>
     <div class="card">
       <div class="fold"><h2 style="margin:0"><span class="ico"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span>添加课程</h2><a id="toggleCourseForm">展开 ▼</a></div>
+      <div style="padding:2px 16px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn ghost sm" id="icsBtn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>导入课表 (.ics)</button>
+        <span class="muted" style="font-size:12px">从学校日历文件一键灌入课程</span>
+        <input type="file" id="icsInput" accept=".ics,text/calendar" style="display:none">
+      </div>
       <form id="courseForm" class="hide">
         <div class="form-grid">
           <div class="full"><label class="fl">课程名称</label><input type="text" name="title" placeholder="如：高等数学" required></div>
@@ -1464,6 +1469,94 @@ function init(){
   setInterval(refreshAll,60000);
 }
 init();
+</script>
+<script>
+/* ============ 导入 .ics 课表 ============ */
+(function(){
+  var btn=document.getElementById('icsBtn');
+  var inp=document.getElementById('icsInput');
+  if(!btn||!inp) return;
+  btn.addEventListener('click',function(){ inp.click(); });
+  inp.addEventListener('change',function(){
+    var file=inp.files&&inp.files[0]; if(!file) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{ importIcs(String(rd.result||'')); }
+      catch(e){ console.error(e); showToast('课表解析失败'); }
+      inp.value='';
+    };
+    rd.onerror=function(){ showToast('读取文件失败'); inp.value=''; };
+    rd.readAsText(file,'utf-8');
+  });
+
+  function importIcs(text){
+    if(!text||text.indexOf('BEGIN:VCALENDAR')<0){ showToast('不是有效的 .ics 文件'); return; }
+    var blocks=text.split('BEGIN:VEVENT');
+    var added=0, skipped=0, oneoff=0;
+    var chain=Promise.resolve();
+    blocks.forEach(function(block){
+      if(block.indexOf('END:VEVENT')<0) return;
+      var body=block.split('END:VEVENT')[0];
+      var sum=(getF(body,'SUMMARY')||'').replace(/\\,/g,',').trim(); if(!sum) return;
+      var loc=(getF(body,'LOCATION')||'').replace(/\\,/g,',').trim();
+      var ds=getF(body,'DTSTART'); var de=getF(body,'DTEND');
+      if(!ds||!de) return;
+      var start=icsDate(ds), end=icsDate(de);
+      if(!start||!end) return;
+      var rrule=/FREQ=WEEKLY/i.test(getF(body,'RRULE')||'');
+      var desc=(getF(body,'DESCRIPTION')||'').replace(/\\,/g,',').replace(/\\n/g,'\n');
+      var parity='每周';
+      if(desc.indexOf('单周')>-1) parity='单周';
+      else if(desc.indexOf('双周')>-1) parity='双周';
+      var weekday=WEEKDAYS[(start.getDay()+6)%7];
+      var st=pad2(start.getHours())+':'+pad2(start.getMinutes());
+      var et=pad2(end.getHours())+':'+pad2(end.getMinutes());
+      var teacher=''; var tm=desc.match(/任课教师[:：]\s*([^\n]+)/); if(tm) teacher=tm[1].trim();
+      var isMakeup=sum.indexOf('补课')>-1||desc.indexOf('补课')>-1;
+      var note='';
+      if(isMakeup){ if(sum.indexOf('补课')<0) note='（补课）'; }
+      else if(!rrule) note='（集中实训·仅第16周）';
+      var name=sum+(note?' '+note:'');
+      var dup=false;
+      for(var i=0;i<state.records.length;i++){
+        var r=state.records[i];
+        if(val(r,'名称')===name && val(r,'星期')===weekday && val(r,'开始时间')===st){ dup=true; break; }
+      }
+      if(dup){ skipped++; return; }
+      var props={
+        '名称':{ text:name },
+        '分类':{ select: optId('分类',OPT['分类'].course) },
+        '星期':{ select: weekday },
+        '单双周':{ select: parity },
+        '开始时间':{ text: st },
+        '结束时间':{ text: et },
+        '地点':{ text: loc }
+      };
+      var note2=(teacher?('教师：'+teacher+' '):'')+(rrule?'':('仅 '+start.getFullYear()+'-'+pad2(start.getMonth()+1)+'-'+pad2(start.getDate())+' 一次'));
+      if(note2) props['备注']={ text: note2.trim() };
+      if(!rrule) oneoff++;
+      (function(p){ chain=chain.then(function(){ return api.addRecord(p).then(function(){ added++; }); }); })(props);
+    });
+    chain.then(function(){
+      var msg='已导入 '+added+' 门课';
+      if(oneoff) msg+='（含 '+oneoff+' 门集中/补课，具体日期见备注）';
+      if(skipped) msg+='，跳过 '+skipped+' 门重复';
+      showToast(msg);
+      reload();
+    }).catch(function(e){ console.error(e); showToast('导入出错，请重试'); });
+  }
+
+  function getF(body,key){
+    var m=body.match(new RegExp('(?:^|\\n)'+key+'(?:;[^:\\n]*)?:([^\\n]*)','i'));
+    return m?m[1].trim():null;
+  }
+  function icsDate(s){
+    var t=s.replace(/^[^:]*:/,'').trim();
+    var m=t.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
+    if(!m) return null;
+    return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]);
+  }
+})();
 </script>
 </body>
 </html>
